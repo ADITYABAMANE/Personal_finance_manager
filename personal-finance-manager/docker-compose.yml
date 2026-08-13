@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: finance_db
+      POSTGRES_USER: finance_user
+      POSTGRES_PASSWORD: finance_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - finance_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance_user -d finance_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: finance-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: finance_db
+      DB_USERNAME: finance_user
+      DB_PASSWORD: finance_pass
+      JWT_SECRET: ChangeThisSecretKeyToSomethingLongAndRandomForProductionUse123456
+      JWT_EXPIRATION_MS: 86400000
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  finance_pgdata:
